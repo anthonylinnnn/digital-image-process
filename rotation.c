@@ -533,7 +533,6 @@ int main(){
         rotation(GR,ang,width,height,GP);
         rotation(BR,ang,width,height,BP);
         printf("true color image\n");
-        printf("color image\n");
         save_bmp("rotation.bmp",RP,GP,BP);
     }
 /*
