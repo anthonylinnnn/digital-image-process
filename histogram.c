@@ -453,6 +453,7 @@ void histogram_equalization(unsigned char *image_data, int width, int height) {
     // 計算直方圖
     for (int i = 0; i < total_pixels; i++) {
         histogram[image_data[i]]++;
+        printf("histogram[%d]: %d\n", image_data[i], histogram[image_data[i]]);
     }
 
     // 計算累積分佈函數
@@ -463,17 +464,21 @@ void histogram_equalization(unsigned char *image_data, int width, int height) {
             min_value = min_value > i ? i : min_value;
             max_value = max_value < i ? i : max_value;
         }
+        printf("cumulative_distribution[%d]: %f\n", i, cumulative_distribution[i]);
     }
 
     // 計算均值化後的直方圖
     for (int i = 0; i < 256; i++) {
         equalized_histogram[i] = (int)(((cumulative_distribution[i] - cumulative_distribution[min_value]) / (cumulative_distribution[max_value] - cumulative_distribution[min_value])) * 255);
+        printf("equalized_histogram[%d]: %d\n", i, equalized_histogram[i]);
     }
 
     // 更新圖像數據
     for (int i = 0; i < total_pixels; i++) {
         image_data[i] = (unsigned char)equalized_histogram[image_data[i]];
     }
+    
+
 }
 
 int main(int argc, char *argv[]) {
@@ -484,7 +489,7 @@ int main(int argc, char *argv[]) {
     open_bmp("boat.bmp", R, R, R, &width, &height); // for gray images
 
     histogram_equalization(bmp_tmp.image_data, width, height);
-
+    
     // 將濾波後的圖像數據複製回R陣列，以便保存
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
