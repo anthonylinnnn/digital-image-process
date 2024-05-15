@@ -461,7 +461,7 @@ int main(int argc, char *argv[]) {
     // open_bmp("lena_color_512.bmp", R, G, B, width, height); // for true color images
     open_bmp("lena_pepper_and_salt_noise10.bmp", R, R, R, &width, &height); // for gray images
 
-    int filter_size = 3;  // Adjust filter size as needed
+    int filter_size = 5;  // Adjust filter size as needed
     median_filter(bmp_tmp.image_data, width, height, filter_size);
 
     for (y = 0; y < height; y++) {

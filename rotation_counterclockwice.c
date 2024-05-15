@@ -399,8 +399,8 @@ int compare_ints(const void *a, const void *b) {
 
 void rotation(int src[MaxBMPSizeX][MaxBMPSizeY], double ang, int width, int height, int dst[1024][1024]) {
     //計算ang對應的三角函數值，以減少浮點數計算量
-    double sin_angle = sin(ang * 3.14 / 180.0);
-    double cos_angle = cos(ang * 3.14 / 180.0);
+    double sin_angle = sin(ang * 3.1416 / 180.0);
+    double cos_angle = cos(ang * 3.1416 / 180.0);
 
     int x_h,y_h,new_x_h,new_y_h;//舊圖像中心和新圖像中心
     int x, y,new_x, new_y;//舊圖像索引和新圖像索引
@@ -457,6 +457,7 @@ void rotation(int src[MaxBMPSizeX][MaxBMPSizeY], double ang, int width, int heig
 
                 dst[new_y][new_x] = (int)color;
             }
+
             //若下方為0
             if (dst[new_y+1][new_x]==0){
                 src_x = cos_angle * (new_x - width / 2) + sin_angle * (new_y +1 - height / 2) + width/2;
@@ -519,7 +520,7 @@ void rotation(int src[MaxBMPSizeX][MaxBMPSizeY], double ang, int width, int heig
 //*/
 
 int main(){
-    printf("000333\n");
+    printf("000333\n");//env test
     int width=0;
     int height=0;
     double ang=0.0;
@@ -537,7 +538,7 @@ int main(){
         printf("\nrotate %lf degree\n",ang);
 
         modr=ang/360;
-        ang=360.0*(modr+1)-ang;  
+//        ang=360.0-fmod(ang,360);
 
         rotation(RR,ang,width,height,RP);
 
@@ -553,7 +554,7 @@ int main(){
         printf("\nrotate %lf degree\n",ang); 
 
         modr=ang/360;
-        ang=360.0*(modr+1)-ang;        
+ //       ang=360.0*(modr+1)-ang;        
 
         rotation(RR,ang,width,height,RP);
         rotation(GR,ang,width,height,GP);
