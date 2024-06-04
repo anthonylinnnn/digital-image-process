@@ -461,7 +461,7 @@ int main(int argc, char *argv[]) {
     // open_bmp("lena_color_512.bmp", R, G, B, width, height); // for true color images
     open_bmp("lena_pepper_and_salt_noise10.bmp", R, R, R, &width, &height); // for gray images
 
-    int filter_size = 5;  // Adjust filter size as needed
+    int filter_size = 7;  // Adjust filter size as needed
     median_filter(bmp_tmp.image_data, width, height, filter_size);
 
     for (y = 0; y < height; y++) {
@@ -471,7 +471,7 @@ int main(int argc, char *argv[]) {
         }
     }
     // save_bmp("lenna_new1.bmp", r, g, b); // for true color images
-    save_bmp("lena_new5.bmp", R, R, R); // for gray images
+    save_bmp("lena_new7.bmp", R, R, R); // for gray images
 
     printf("Job Finished!\n");
     close_bmp();

@@ -1,4 +1,5 @@
-#include "bmp_31.h"
+//image rotation using bi-lineal e?,author B11013031
+#include "bmp_fixed.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -81,7 +82,7 @@ static MyBITMAP bmp_tmp;
 static int bmp_gap = 0;
 
 
-void open_bmp(char filename[], int bmp_r[ MaxBMPSizeX][MaxBMPSizeY], int bmp_g[ MaxBMPSizeX][MaxBMPSizeY], int bmp_b[ MaxBMPSizeX][MaxBMPSizeY], int *width, int *height)
+void open_bmp(const char *filename, int bmp_r[ MaxBMPSizeX][MaxBMPSizeY], int bmp_g[ MaxBMPSizeX][MaxBMPSizeY], int bmp_b[ MaxBMPSizeX][MaxBMPSizeY], int *width, int *height)
 {//定義了 open_bmp 函數，它接受一個文件名和三個二維整數陣列（分別代表紅、綠、藍色通道的圖像數據），以及兩個指針（指向圖像寬度和高度的整數）作為參數。
     int r, g, b;
     int x, y;
@@ -112,7 +113,7 @@ void open_bmp(char filename[], int bmp_r[ MaxBMPSizeX][MaxBMPSizeY], int bmp_g[ 
 
 }
 
-void save_bmp(char filename[], int bmp_r[MaxBMPSizeX][MaxBMPSizeY], int bmp_g[MaxBMPSizeX][MaxBMPSizeY], int bmp_b[MaxBMPSizeX][MaxBMPSizeY])//這行定義了save_bmp函數，它接受一個文件名和三個二維整數陣列（分別代表紅、綠、藍色通道的圖像數據），以及圖像的寬度和高度。
+void save_bmp(const char *filename, int bmp_r[MaxBMPSizeX][MaxBMPSizeY], int bmp_g[MaxBMPSizeX][MaxBMPSizeY], int bmp_b[MaxBMPSizeX][MaxBMPSizeY])//這行定義了save_bmp函數，它接受一個文件名和三個二維整數陣列（分別代表紅、綠、藍色通道的圖像數據），以及圖像的寬度和高度。
 {
     int width, height;
     int r, g, b;
@@ -412,6 +413,8 @@ void rotation(int src[MaxBMPSizeX][MaxBMPSizeY], double ang, int width, int heig
     y_h=height/2;
     new_x_h=N_border_width/2;
     new_y_h=N_border_height/2;
+
+    printf("\nrotation angle =%f",ang);
     
     printf("\n\noriginal border =  %d , %d \nnew border = %d , %d",width,height,N_border_width,N_border_height);
     printf("\n\noriginal certer point = %d,%d \nnew center opint = %d,%d",x_h,y_h,new_x_h,new_y_h);
@@ -554,7 +557,7 @@ int main(){
         printf("\nrotate %lf degree\n",ang); 
 
         modr=ang/360;
-        ang=360.0*(modr+1)-ang;        
+        ang=360.0-fmod(ang,360);      
 
         rotation(RR,ang,width,height,RP);
         rotation(GR,ang,width,height,GP);

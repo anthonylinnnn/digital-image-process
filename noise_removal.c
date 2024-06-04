@@ -1,11 +1,24 @@
-#include "bmp_31.h"
+/* ===================================================
+     Functions to Read and Write BMP Image Files
+=====================================================*/
+
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
+#include "bmp_fixed.h"
 
-// 定義BMP文件頭結構，包含文件類型、大小、保留字和數據偏移等資訊。
+// **************************************************
+//              System Constant Definition
+// **************************************************
+
+// **************************************************
+//                Structure Difinitions
+// **************************************************
+// 定義了與BMP圖像處理相關的結構體。
+
+// 定義BMP文件頭結構體，包含文件類型、大小、保留字和數據偏移等信息。
 typedef struct MyBITMAPFILEHEADER_type {
     char            B;
     char            M;
@@ -16,7 +29,7 @@ typedef struct MyBITMAPFILEHEADER_type {
     char            buf[14];
 } MyBITMAPFILEHEADER;
 
-// 定義BMP標頭結構，包含圖像的尺寸、壓縮類型、顏色深度等資訊。
+// 定義BMP信息頭結構體，包含圖像的尺寸、壓縮類型、顏色深度等信息。
 typedef struct MyBITMAPINFOHEADER_type {
     unsigned int        biSize;// 此結構體的大小
     unsigned int        biWidth;// 圖像的寬
@@ -32,8 +45,7 @@ typedef struct MyBITMAPINFOHEADER_type {
     char            buf[40];
 } MyBITMAPINFOHEADER;
 
-
-// 定義調色板結構，用於存儲256色的調色板資訊，每個顏色由4個位元組成（通常是RGBA）。
+// 定義調色板結構體，用於存儲256色的調色板信息，每個顏色由4個字節組成（通常是RGBA）。
 typedef struct MyRGBQUAD_type {
     unsigned char        palette[256][4];
     char            buf[256*4];
@@ -42,7 +54,7 @@ typedef struct MyRGBQUAD_type {
 // 定義ImageData為指向unsigned char的指針，用於指向圖像數據。
 typedef unsigned char *ImageData;
 
-// 定義MyBITMAP結構體，包含文件頭、資訊頭、調色板和圖像數據等，以及圖像數據行的填充位元（bmp_gap）。
+// 定義MyBITMAP結構體，包含文件頭、信息頭、調色板和圖像數據等，以及圖像數據行的填充字節（bmp_gap）。
 typedef struct MyBITMAP_type {
     MyBITMAPFILEHEADER    file_header;
     MyBITMAPINFOHEADER    info_header;
@@ -51,50 +63,53 @@ typedef struct MyBITMAP_type {
     int            bmp_gap;
 } MyBITMAP;
 
+// **************************************************
+//                Prototype Declarations
+// **************************************************
+// 函數原型聲明區域，聲明了一系列操作BMP圖像的函數。
 
-// 宣告加載和保存BMP圖像的函數。
+// 聲明加載和保存BMP圖像的函數。
 static void load_bmp_image(char filename[], MyBITMAP *bmp);
 static void save_bmp_image(char filename[], MyBITMAP *bmp);
 
-//int* BW=1024;
-//int* BH=1024;
-
-//RAW DATA
-int RR[MaxBMPSizeX][MaxBMPSizeY]; // MaxBMPSizeX and MaxBMPSizeY are defined in "bmp.h"
-int GR[MaxBMPSizeX][MaxBMPSizeY];
-int BR[MaxBMPSizeX][MaxBMPSizeY]; // MaxBMPSizeX and MaxBMPSizeY are defined in "bmp.h"
-
-//PROCESSED DATA
-int RP[MaxBMPSizeX][MaxBMPSizeY];
-int GP[MaxBMPSizeX][MaxBMPSizeY]; // MaxBMPSizeX and MaxBMPSizeY are defined in "bmp.h"
-int BP[MaxBMPSizeX][MaxBMPSizeY];
-
-int color_type=0;
-int N_W,N_H;
-
-// 宣告獲取和設置圖像中特定像素顏色的函數。
+// 聲明獲取和設置圖像中特定像素顏色的函數。
 static void get_bmp_pixel(MyBITMAP *bmp, int x, int y, int* color_r, int* color_g, int* color_b);
 static void set_bmp_pixel(MyBITMAP *bmp, int x, int y, int color_r, int color_g, int color_b);
 
-// 宣告了一個MyBITMAP類型的全域變數和一個整型變量(資料型態)用於存儲圖像數據行的填充位元。
+// **************************************************
+//                  Global Variables
+// **************************************************
+// 全局變量宣告區域。
+
+// 聲明了一個MyBITMAP類型的全域變數和一個整型變量(資料型態)用於存儲圖像數據行的填充字節。
 static MyBITMAP bmp_tmp;
 static int bmp_gap = 0;
 
+// **************************************************
+// Image Tools
+// **************************************************
+// 圖像工具函數區域，可能用於進一步的圖像處理。
 
-void open_bmp(char filename[], int bmp_r[ MaxBMPSizeX][MaxBMPSizeY], int bmp_g[ MaxBMPSizeX][MaxBMPSizeY], int bmp_b[ MaxBMPSizeX][MaxBMPSizeY], int *width, int *height)
+// **************************************************
+// open_bmp
+// Open and load a bitmap image file into memory (3 RGB arrays of 1024x1024).
+// **************************************************
+//void open_bmp(const char *filename[], int **bmp_r[1024][1024], int **bmp_g[1024][1024], int **bmp_b[1024][1024], int *width, int *height)
+
+
+void open_bmp(const char *filename, int bmp_r[][MaxBMPSizeY], int bmp_g[][MaxBMPSizeY], int bmp_b[][MaxBMPSizeY], int *width, int *height)
 {//定義了 open_bmp 函數，它接受一個文件名和三個二維整數陣列（分別代表紅、綠、藍色通道的圖像數據），以及兩個指針（指向圖像寬度和高度的整數）作為參數。
     int r, g, b;
     int x, y;
 
-    printf("going to convert %s",filename);
-//調用 load_bmp_image 函數，將指定的BMP文件加載到一個全局變量 bmp_tmp 中。這個全局變量包含了圖像的所有資訊，包括文件頭、資訊頭、調色板和圖像數據。
+//調用 load_bmp_image 函數，將指定的BMP文件加載到一個全局變量 bmp_tmp 中。這個全局變量包含了圖像的所有信息，包括文件頭、信息頭、調色板和圖像數據。
     load_bmp_image((char*)filename, &bmp_tmp);
     
-    //從 bmp_tmp 的資訊頭中讀取圖像的寬度和高度，並將這些值賦給通過參數傳入的指針。
+    //從 bmp_tmp 的信息頭中讀取圖像的寬度和高度，並將這些值賦給通過參數傳入的指針。
     *width  = bmp_tmp.info_header.biWidth;
     *height = bmp_tmp.info_header.biHeight;
     
-    //檢查圖像的寬度和高度是否超過了預定義的最大值。如果是，則打印錯誤資訊並退出程序。
+    //檢查圖像的寬度和高度是否超過了預定義的最大值。如果是，則打印錯誤信息並退出程序。
     if ((*width > MaxBMPSizeX) || (*height > MaxBMPSizeY)) {
         printf("bmp size too big\n");
         exit(1);
@@ -112,13 +127,19 @@ void open_bmp(char filename[], int bmp_r[ MaxBMPSizeX][MaxBMPSizeY], int bmp_g[ 
 
 }
 
-void save_bmp(char filename[], int bmp_r[MaxBMPSizeX][MaxBMPSizeY], int bmp_g[MaxBMPSizeX][MaxBMPSizeY], int bmp_b[MaxBMPSizeX][MaxBMPSizeY])//這行定義了save_bmp函數，它接受一個文件名和三個二維整數陣列（分別代表紅、綠、藍色通道的圖像數據），以及圖像的寬度和高度。
+// **************************************************
+// save_bmp
+// Save a bitmap image file from memory (3 RGB arrays of 1024x1024).
+// **************************************************
+
+//void save_bmp(const char *filename[], int *bmp_r[1024][1024], int *bmp_g[1024][1024], int *bmp_b[1024][1024])
+void save_bmp(const char *filename, int bmp_r[][MaxBMPSizeY], int bmp_g[][MaxBMPSizeY], int bmp_b[][MaxBMPSizeY])//這行定義了save_bmp函數，它接受一個文件名和三個二維整數陣列（分別代表紅、綠、藍色通道的圖像數據），以及圖像的寬度和高度。
 {
     int width, height;
     int r, g, b;
     int x, y;
 
-    width  = bmp_tmp.info_header.biWidth;//這兩行從全域變數bmp_tmp的資訊頭部中讀取圖像的寬度和高度，並將它們賦值給width和height變量。
+    width  = bmp_tmp.info_header.biWidth;//這兩行從全域變數bmp_tmp的信息頭部中讀取圖像的寬度和高度，並將它們賦值給width和height變量。
     height = bmp_tmp.info_header.biHeight;
 
     for (x = 0; x <= width - 1; x++) {//這兩行開始一個雙層for迴圈，用於遍歷圖像的每一個像素。
@@ -133,8 +154,25 @@ void save_bmp(char filename[], int bmp_r[MaxBMPSizeX][MaxBMPSizeY], int bmp_g[Ma
     save_bmp_image((char*)filename, &bmp_tmp);//這行調用save_bmp_image函數，將修改後的圖像數據（存儲在bmp_tmp中）保存到指定的文件名中。
 
 }
+//總結來說，save_bmp函數的作用是將傳入的RGB圖像數據保存到指定的BMP文件中。它首先讀取圖像的寬度和高度，然後遍歷每一個像素，將其顏色值寫入到全域變數bmp_tmp中，
+//最後調用save_bmp_image函數將這些數據寫入到文件中。
 
-void close_bmp(){free(bmp_tmp.image_data);}
+// **************************************************
+// close_bmp
+// Close and release memory for a bitmap image.
+// **************************************************
+
+void close_bmp()
+{
+
+    free(bmp_tmp.image_data);
+
+}
+
+// **************************************************
+// load_bmp_image
+// Loads a bitmap image file into memory.
+// **************************************************
 
 void load_bmp_image(char filename[], MyBITMAP *bmp)
 {
@@ -142,15 +180,15 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
     int b0, b1, b2, b3;
     int i;
 
-    if ((fp = fopen(filename,"rb")) == NULL) {
+    if ((fp = fopen(filename,"rb")) == 0) {
         printf("Couldn't find file %s.\n",filename);
         exit(1);
     }
 
-// 讀取BMP文件頭部資訊到結構體
+// 讀取BMP文件頭部信息到結構體
     fread(&(bmp->file_header.buf), sizeof(char), 14, fp);
 
-// 解析文件頭部資訊，例如文件大小、數據偏移等
+// 解析文件頭部信息，例如文件大小、數據偏移等
     b0 = (bmp->file_header.buf[0] & 0xff);
     b1 = (bmp->file_header.buf[1] & 0xff);
     bmp->file_header.B = (char)b0;
@@ -176,10 +214,10 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
     b3 = (bmp->file_header.buf[13] & 0xff);
     bmp->file_header.bfOffBits = (unsigned int)((b3<<24) + (b2<<16) + (b1<<8) + b0);
 
-// 讀取BMP資訊頭部資訊到結構體
+// 讀取BMP信息頭部信息到結構體
     fread(&(bmp->info_header.buf), sizeof(char), 40, fp);
 
-// 解析資訊頭部資訊，例如圖像寬度、高度、壓縮類型等
+// 解析信息頭部信息，例如圖像寬度、高度、壓縮類型等
     b0 = (bmp->info_header.buf[0] & 0xff);
     b1 = (bmp->info_header.buf[1] & 0xff);
     b2 = (bmp->info_header.buf[2] & 0xff);
@@ -221,10 +259,8 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
     bmp->info_header.biSizeImage = (unsigned int)((b3<<24) + (b2<<16) + (b1<<8) + b0);
     if (bmp->info_header.biSizeImage == 0) {
         if (bmp->info_header.biBitCount == 8) {
-            color_type=0;
             bmp->info_header.biSizeImage = (unsigned int)(bmp->info_header.biWidth * bmp->info_header.biHeight);
         } else if (bmp->info_header.biBitCount == 24) {
-            color_type=1;
             bmp->info_header.biSizeImage = (unsigned int)(bmp->info_header.biWidth * bmp->info_header.biHeight * 3);
         } else {
             printf("Not supported format!\n");
@@ -256,10 +292,10 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
     b3 = (bmp->info_header.buf[39] & 0xff);
     bmp->info_header.biClrImportant = (unsigned int)((b3<<24) + (b2<<16) + (b1<<8) + b0);
 
-// 根據biBitCount判斷是否需要讀取調色板資訊
+// 根據biBitCount判斷是否需要讀取調色板信息
     if (bmp->info_header.biBitCount == 8) {
         fread(&(bmp->rgbquad.buf), sizeof(char), 256*4, fp);
-        // 讀取調色板資訊
+        // 讀取調色板信息
         for (i = 0; i <= 255; i++) {
            b0 = (bmp->rgbquad.buf[i*4]   & 0xff);
            b1 = (bmp->rgbquad.buf[i*4+1] & 0xff);
@@ -270,13 +306,13 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
            bmp->rgbquad.palette[i][2] = (unsigned char)(b2 & 0xff);
            bmp->rgbquad.palette[i][3] = (unsigned char)(b3 & 0xff);
        }
-       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == NULL) {
+       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == 0) {
            printf("couldn't get memory for file %s.\n",filename);
            exit(1);
        }
        fread(bmp->image_data, sizeof(char), bmp->info_header.biSizeImage, fp);
     } else if (bmp->info_header.biBitCount == 24) {
-       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == NULL) {
+       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == 0) {
            printf("couldn't get memory for file %s.\n",filename);
            exit(1);
        }
@@ -290,21 +326,26 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
 
 }
 
+// **************************************************
+// save_bmp_image
+// Saves memory into a bitmap image file.
+// **************************************************
+
 void save_bmp_image(char filename[], MyBITMAP *bmp)
 {
    FILE *fp;
    
-   if ((fp = fopen(filename,"wb")) == NULL) {
+   if ((fp = fopen(filename,"wb")) == 0) {
        printf("Couldn't find file %s.\n",filename);
        exit(1);
    }
 
-// 寫入BMP文件頭部和資訊頭部資訊
+// 寫入BMP文件頭部和信息頭部信息
    fwrite(&(bmp->file_header.buf), sizeof(char), 14, fp);
 
    fwrite(&(bmp->info_header.buf), sizeof(char), 40, fp);
 
-// 如果有調色板，則寫入調色板資訊
+// 如果有調色板，則寫入調色板信息
    if (bmp->info_header.biBitCount == 8) { /* for gray images */
    // 寫入圖像數據
        fwrite(&(bmp->rgbquad.buf), sizeof(char), 256*4, fp); /* color template */
@@ -320,22 +361,29 @@ void save_bmp_image(char filename[], MyBITMAP *bmp)
 
 }
 
+// **************************************************
+// get_bmp_pixel
+// (inline code) get pixel colors of bmp image according to (X,Y)
+// **************************************************
+//get_bmp_pixel 函數的目的是獲取 BMP 圖像中指定像素的顏色值。
 void get_bmp_pixel(MyBITMAP *bmp, int x, int y, int* color_r, int* color_g, int* color_b)
 {//定義了一個函數 get_bmp_pixel，它接受一個指向 MyBITMAP 結構體的指針 bmp 和兩個整數 x、y（代表像素的位置），以及三個指向整數的指針 color_r、color_g、color_b（用於存儲獲取的紅、綠、藍顏色值）。
    int width, height;
    int offset;//offset 用於計算像素在圖像數據陣列中的位置。
 
        if (bmp->info_header.biBitCount == 8) {
+
            width  = bmp->info_header.biWidth;
            height = bmp->info_header.biHeight;
 
-           offset = (y * width + x) + y * bmp->bmp_gap;//計算像素在圖像數據陣列中的位置。bmp->bmp_gap 是每行像素後的填充位元，用於確保每行的位元數是4的倍數。
+           offset = (y * width + x) + y * bmp->bmp_gap;//計算像素在圖像數據陣列中的位置。bmp->bmp_gap 是每行像素後的填充字節，用於確保每行的字節數是4的倍數。
 
            *color_b = (int)(*(bmp->image_data+offset+0) & 0xff);    // B //對於灰階圖像，只有一個顏色通道的值，這裡將該值賦給 color_b、color_g 和 color_r，表示灰階值。
            *color_g = (*color_b);    // G
            *color_r = (*color_b);    // R
 
        } else if (bmp->info_header.biBitCount == 24) {
+
            width  = bmp->info_header.biWidth;
            height = bmp->info_header.biHeight;
 
@@ -355,6 +403,11 @@ void get_bmp_pixel(MyBITMAP *bmp, int x, int y, int* color_r, int* color_g, int*
 
 }
 
+// **************************************************
+// set_bmp_pixel
+// (inline code) set pixel colors of bmp image according to (X,Y)
+// **************************************************
+//set_bmp_pixel 函數的目的是設定 BMP 圖像中指定像素的顏色。
 void set_bmp_pixel(MyBITMAP *bmp, int x, int y, int color_r, int color_g, int color_b)
 {//定義了一個函數 set_bmp_pixel，它接受一個指向 MyBITMAP 結構體的指針 bmp 和三個整數 x、y（代表像素的位置）以及 color_r、color_g、color_b（代表紅、綠、藍顏色的值）。
    int width, height;
@@ -362,10 +415,10 @@ void set_bmp_pixel(MyBITMAP *bmp, int x, int y, int color_r, int color_g, int co
         //檢查圖像是否為灰階圖像（每個像素8位）。
        if (bmp->info_header.biBitCount == 8) { /* for gray images */
 
-           width  = bmp->info_header.biWidth;//從 bmp 結構體的資訊頭中讀取圖像的寬度和高度。
+           width  = bmp->info_header.biWidth;//從 bmp 結構體的信息頭中讀取圖像的寬度和高度。
            height = bmp->info_header.biHeight;
 
-           offset = (y * width + x) + y * bmp->bmp_gap;//計算像素在圖像數據陣列中的位置。bmp->bmp_gap 是每行像素後的填充位元，用於確保每行的位元數是4的倍數。
+           offset = (y * width + x) + y * bmp->bmp_gap;//計算像素在圖像數據陣列中的位置。bmp->bmp_gap 是每行像素後的填充字節，用於確保每行的字節數是4的倍數。
 
            *(bmp->image_data+offset+0) = (unsigned char)(color_b & 0xff);//將藍色值設定到指定像素的位置。對於灰階圖像，只需要設定一個顏色值。
 
@@ -389,188 +442,94 @@ void set_bmp_pixel(MyBITMAP *bmp, int x, int y, int color_r, int color_g, int co
 
 }
 
-// Helper function for qsort (assuming qsort is available in your environment)
-int compare_ints(const void *a, const void *b) {
-  return (*(int*)a - *(int*)b);
-}
-
-//void rotation(int* src,double ang,int width,int height,int img_out){
 
 
-void rotation(int src[MaxBMPSizeX][MaxBMPSizeY], double ang, int width, int height, int dst[1024][1024]) {
-    //計算ang對應的三角函數值，以減少浮點數計算量
-    double sin_angle = sin(ang * 3.1416 / 180.0);
-    double cos_angle = cos(ang * 3.1416 / 180.0);
 
-    int x_h,y_h,new_x_h,new_y_h;//舊圖像中心和新圖像中心
-    int x, y,new_x, new_y;//舊圖像索引和新圖像索引
 
-    int N_border_width=abs((int)((cos_angle * width ) + (sin_angle * height)));//新圖寬
-    int N_border_height=abs((int)((sin_angle * width ) + (cos_angle * height)));//新圖高
+void erosion(unsigned char *image_data, int width, int height, int bmp[][MaxBMPSizeY]) {
+    int x, y, i, j;
+    int min_val;
+    int temp[MaxBMPSizeX][MaxBMPSizeY];
 
-    x_h=width/2;
-    y_h=height/2;
-    new_x_h=N_border_width/2;
-    new_y_h=N_border_height/2;
-    
-    printf("\n\noriginal border =  %d , %d \nnew border = %d , %d",width,height,N_border_width,N_border_height);
-    printf("\n\noriginal certer point = %d,%d \nnew center opint = %d,%d",x_h,y_h,new_x_h,new_y_h);
-
-    double src_x, src_y;//舊圖像對應新圖像的位置
-    double color;//顏色值
-    int tx=0;//暫存新圖像索引
-    int ty=0;//暫存新圖像索引
-
-    //全圖掃描
-    for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-            
-            int rad=sqrt(pow((x-x_h),2)+pow((y-y_h),2));
-
-            //計算原本[x,y]翻轉後對應的座標
-            new_x=x*cos_angle-y*sin_angle-x_h*cos_angle+y_h*sin_angle+x_h;
-            new_y=y*cos_angle+x*sin_angle-x_h*sin_angle-y_h*cos_angle+y_h;
-            
-            //掃描並計算新圖像顏色值
-            if (new_x >= 0 && new_x < N_border_width && new_y >= 0 && new_y < N_border_height) {
-
-                src_x = cos_angle * (new_x - width / 2) + sin_angle * (new_y - height / 2) + width/2;
-                src_y = -sin_angle * (new_x - width / 2) + cos_angle * (new_y - height / 2) + height/2;
-                // Perform bilinear interpolation
-                int src_x0 = (int)src_x;
-                int src_y0 = (int)src_y;
-                int src_x1 = src_x0 + 1;
-                int src_y1 = src_y0 + 1;
-
-                double dx = src_x - src_x0;
-                double dy = src_y - src_y0;
-
-                //獲得鄰近四點的顏色值
-                double c00 = src[src_y0][src_x0];
-                double c01 = src[src_y0][src_x1];
-                double c10 = src[src_y1][src_x0];
-                double c11 = src[src_y1][src_x1];
-                    
-                //計算顏色值
-                color = (1 - dx) * (1 - dy) * c00 + dx * (1 - dy) * c01 + (1 - dx) * dy * c10 + dx * dy * c11;
-                //color=sqrt(pow((1-dx),2)+pow((1-dy),2))*c00 + sqrt(pow((dx),2)+pow((1-dy),2))*c01 +sqrt(pow((1-dx),2)+pow((dy),2))*c10 +sqrt(pow((dx),2)+pow((dy),2))*c11 ;
-
-                dst[new_y][new_x] = (int)color;
+    for (x = 0; x < width; x++) {
+        for (y = 0; y < height; y++) {
+            min_val = 255;
+            for (i = -1; i <= 1; i++) {
+                for (j = -1; j <= 1; j++) {
+                    int nx = x + i;
+                    int ny = y + j;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        if (bmp[nx][ny] < min_val) min_val = bmp[nx][ny];
+                    }
+                }
             }
-
-            //若下方為0
-            if (dst[new_y+1][new_x]==0){
-                src_x = cos_angle * (new_x - width / 2) + sin_angle * (new_y +1 - height / 2) + width/2;
-                src_y = -sin_angle * (new_x - width / 2) + cos_angle * (new_y +1- height / 2) + height/2;
-                // Perform bilinear interpolation
-                int src_x0 = (int)src_x;
-                int src_y0 = (int)src_y;
-                int src_x1 = src_x0 + 1;
-                int src_y1 = src_y0 + 1;
-
-                double dx = src_x - src_x0;
-                double dy = src_y - src_y0;
-
-                double c00 = src[src_y0][src_x0];
-                double c01 = src[src_y0][src_x1];
-                double c10 = src[src_y1][src_x0];
-                double c11 = src[src_y1][src_x1];
-
-                color = (1 - dx) * (1 - dy) * c00 + dx * (1 - dy) * c01 + (1 - dx) * dy * c10 + dx * dy * c11;
-                //color=sqrt(pow((1-dx),2)+pow((1-dy),2))*c00 + sqrt(pow((dx),2)+pow((1-dy),2))*c01 +sqrt(pow((1-dx),2)+pow((dy),2))*c10 +sqrt(pow((dx),2)+pow((dy),2))*c11 ;
-
-                dst[new_y+1][new_x] = (int)color;
-            }
-            //若後方為0
-            if (dst[new_y][new_x+1]==0){
-                
-                src_x = cos_angle * (new_x +1 - width / 2) + sin_angle * (new_y  - height / 2) + width/2;
-                src_y = -sin_angle * (new_x +1- width / 2) + cos_angle * (new_y - height / 2) + height/2;
-                // Perform bilinear interpolation
-                int src_x0 = (int)src_x;
-                int src_y0 = (int)src_y;
-                int src_x1 = src_x0 + 1;
-                int src_y1 = src_y0 + 1;
-
-                double dx = src_x - src_x0;
-                double dy = src_y - src_y0;
-
-                double c00 = src[src_y0][src_x0];
-                double c01 = src[src_y0][src_x1];
-                double c10 = src[src_y1][src_x0];
-                double c11 = src[src_y1][src_x1];
-
-                color = (1 - dx) * (1 - dy) * c00 + dx * (1 - dy) * c01 + (1 - dx) * dy * c10 + dx * dy * c11;
-                //color=sqrt(pow((1-dx),2)+pow((1-dy),2))*c00 + sqrt(pow((dx),2)+pow((1-dy),2))*c01 +sqrt(pow((1-dx),2)+pow((dy),2))*c10 +sqrt(pow((dx),2)+pow((dy),2))*c11 ;
-
-                dst[new_y][new_x+1] = (int)color;
-            }
-
-            tx=new_x;
-            ty=new_y;
-                        
-
+            temp[x][y] = min_val;
         }
+    }
 
-    }    
-    printf("\n\noriginal border =  %d , %d \nnew border = %d , %d",width,height,N_border_width,N_border_height);
-    printf("\n\noriginal certer point = %d,%d \nnew center opint = %d,%d",x_h,y_h,new_x_h,new_y_h);
+    for (x = 0; x < width; x++) {
+        for (y = 0; y < height; y++) {
+            bmp[x][y] = temp[x][y];
+        }
+    }
 }
 
-//*/
+void dilation(unsigned char *image_data, int width, int height, int bmp[][MaxBMPSizeY]) {
+    int x, y, i, j;
+    int max_val;
+    int temp[MaxBMPSizeX][MaxBMPSizeY];
 
-int main(){
-    printf("000333\n");//env test
-    int width=0;
-    int height=0;
-    double ang=0.0;
-    int modr=0;
-
-
-    open_bmp("framed_lena_color_256.bmp", RR,GR,BR,&width,&height);
-    //if picture is mono color
-    if (color_type=0){   
-  
-        printf("gray image\n");
-
-        printf("\nrotation angle: ");
-        scanf("%lf",&ang);
-        printf("\nrotate %lf degree\n",ang);
-
-        modr=ang/360;
-        ang=360.0-fmod(ang,360);
-
-        rotation(RR,ang,width,height,RP);
-
-        save_bmp("N_R_M.bmp",RP,RP,RP);
+    for (x = 0; x < width; x++) {
+        for (y = 0; y < height; y++) {
+            max_val = 0;
+            for (i = -1; i <= 1; i++) {
+                for (j = -1; j <= 1; j++) {
+                    int nx = x + i;
+                    int ny = y + j;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        if (bmp[nx][ny] > max_val) max_val = bmp[nx][ny];
+                    }
+                }
+            }
+            temp[x][y] = max_val;
+        }
     }
-    //if picture is true color
-    else if (color_type=1){
 
-        printf("true color image\n");     
-
-        printf("\nrotation angle: ");
-        scanf("%lf",&ang);
-        printf("\nrotate %lf degree\n",ang); 
-
-        modr=ang/360;
-        ang=360.0*(modr+1)-ang;        
-
-        rotation(RR,ang,width,height,RP);
-        rotation(GR,ang,width,height,GP);
-        rotation(BR,ang,width,height,BP);
-
-        save_bmp("N_R_T.bmp",RP,GP,BP);
+    for (x = 0; x < width; x++) {
+        for (y = 0; y < height; y++) {
+            bmp[x][y] = temp[x][y];
+        }
     }
-/*
-    rotation(RR,ang,width,height,RP);
-    rotation(GR,ang,width,height,GP);
-    rotation(BR,ang,width,height,BP);
-   
-    save_bmp("./N_R.bmp",RP,GP,BP);
-    */
-    printf("\nimg size = %d ,%d \nrotate %lf degree ",width,height,ang);
+}
 
-    system("pause");
-    return(0);
+
+
+int R[1024][1024];
+int r[1024][1024];
+int G[1024][1024];
+int B[1024][1024];
+int main(int argc, char *argv[]) {
+    int width, height;
+    int x, y;
+
+    open_bmp("noisy_rectangle.bmp", r, r, r, &width, &height); // for gray images
+    
+    for (int i = 0; i < 15; i++)
+    {   
+        erosion(bmp_tmp.image_data, width, height, r);
+        
+    }
+    for (int i = 0; i < 23; i++)
+    {
+        dilation(bmp_tmp.image_data, width, height, r);
+        
+    }
+    
+    save_bmp("new_noise.bmp", r, r, r); // for gray images
+
+    printf("Job Finished!\n");
+    close_bmp();
+    system("PAUSE"); /* so that the command window holds a while */
+
+    return 0;
 }

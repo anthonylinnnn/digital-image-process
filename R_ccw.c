@@ -538,7 +538,7 @@ int main(){
         printf("\nrotate %lf degree\n",ang);
 
         modr=ang/360;
-        ang=360.0-fmod(ang,360);
+//        ang=360.0-fmod(ang,360);
 
         rotation(RR,ang,width,height,RP);
 
@@ -554,7 +554,7 @@ int main(){
         printf("\nrotate %lf degree\n",ang); 
 
         modr=ang/360;
-        ang=360.0*(modr+1)-ang;        
+//        ang=360.0*(modr+1)-ang;        
 
         rotation(RR,ang,width,height,RP);
         rotation(GR,ang,width,height,GP);

@@ -180,7 +180,7 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
     int b0, b1, b2, b3;
     int i;
 
-    if ((fp = fopen(filename,"rb")) == NULL) {
+    if ((fp = fopen(filename,"rb")) == 0) {
         printf("Couldn't find file %s.\n",filename);
         exit(1);
     }
@@ -306,13 +306,13 @@ void load_bmp_image(char filename[], MyBITMAP *bmp)
            bmp->rgbquad.palette[i][2] = (unsigned char)(b2 & 0xff);
            bmp->rgbquad.palette[i][3] = (unsigned char)(b3 & 0xff);
        }
-       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == NULL) {
+       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == 0) {
            printf("couldn't get memory for file %s.\n",filename);
            exit(1);
        }
        fread(bmp->image_data, sizeof(char), bmp->info_header.biSizeImage, fp);
     } else if (bmp->info_header.biBitCount == 24) {
-       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == NULL) {
+       if ((bmp->image_data = (unsigned char*) malloc(bmp->info_header.biSizeImage)) == 0) {
            printf("couldn't get memory for file %s.\n",filename);
            exit(1);
        }
@@ -335,7 +335,7 @@ void save_bmp_image(char filename[], MyBITMAP *bmp)
 {
    FILE *fp;
    
-   if ((fp = fopen(filename,"wb")) == NULL) {
+   if ((fp = fopen(filename,"wb")) == 0) {
        printf("Couldn't find file %s.\n",filename);
        exit(1);
    }
